@@ -272,7 +272,6 @@ def _fallback_peak_frame(video_path: str, legs_to_check: list[str]) -> dict | No
 
     knee_ema  = {leg: EMA(SMOOTH_ALPHA) for leg in legs_to_check}
     trunk_ema = EMA(SMOOTH_ALPHA)
-    hip_ema   = EMA(SMOOTH_ALPHA)
 
     prev_ankles = {leg: None for leg in legs_to_check}
     prev_knees  = {leg: None for leg in legs_to_check}
@@ -361,8 +360,6 @@ def _fallback_peak_frame(video_path: str, legs_to_check: list[str]) -> dict | No
                     "detected_leg":     leg,
                     "knee_angle":       nan_to_none(knee_ema[leg].v),
                     "trunk":            nan_to_none(trunk_ema.v),
-                    "hip_rotation":     nan_to_none(hip_ema.v),
-                    "ankle_speed_pps":  nan_to_none(ankle_speed),
                     "knee_ang_vel_dps": nan_to_none(knee_kav),
                 }
 
@@ -418,18 +415,15 @@ def analyze_video_file(
     state = {
         "right": {
             "knee_ema": EMA(SMOOTH_ALPHA), "trunk_ema": EMA(SMOOTH_ALPHA),
-            "hip_ema": EMA(SMOOTH_ALPHA),
             "prev_ankle": None, "prev_knee_angle": None,
         },
         "left": {
             "knee_ema": EMA(SMOOTH_ALPHA), "trunk_ema": EMA(SMOOTH_ALPHA),
-            "hip_ema": EMA(SMOOTH_ALPHA),
             "prev_ankle": None, "prev_knee_angle": None,
         },
     }
 
     kick_candidates: list[dict] = []   # collect up to max_kicks
-    frame_store: dict[int, np.ndarray] = {}   # frame_idx → raw frame for overlay
     frame_idx = 0
 
     while len(kick_candidates) < max_kicks:
@@ -473,7 +467,9 @@ def analyze_video_file(
             trunk_signed, trunk_mag = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
         hip_rotation = np.nan
         if min(sh_l_conf, sh_r_conf, hip_l_conf, hip_r_conf) >= CONF_THRESH:
-            hip_rotation = torso_pelvis_twist_2d(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
+            trunk_signed, _ = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
+
+        frame_metrics: dict[str, dict] = {}
 
         for leg in legs_to_check:
             s = state[leg]
@@ -523,29 +519,9 @@ def analyze_video_file(
         best_score    = -1.0   # composite detection score
 
         for leg in legs_to_check:
-            s = state[leg]
-            if leg == "right":
-                hip_idx, knee_idx, ankle_idx = RHIP, RKNEE, RANKLE
-            else:
-                hip_idx, knee_idx, ankle_idx = LHIP, LKNEE, LANKLE
-
-            hip_pt,   hip_conf   = to_xy_conf(hip_idx)
-            knee_pt,  knee_conf  = to_xy_conf(knee_idx)
-            ankle_pt, ankle_conf = to_xy_conf(ankle_idx)
-
-            knee_angle = np.nan
-            if min(hip_conf, knee_conf, ankle_conf) >= CONF_THRESH:
-                knee_angle = angle_between_points(hip_pt, knee_pt, ankle_pt)
-
-            ankle_speed_pps = np.nan
-            if s["prev_ankle"] is not None and ankle_conf >= CONF_THRESH:
-                dx = ankle_pt[0] - s["prev_ankle"][0]
-                dy = ankle_pt[1] - s["prev_ankle"][1]
-                ankle_speed_pps = math.hypot(dx, dy) * fps
-
-            knee_ang_vel_dps = np.nan
-            if s["prev_knee_angle"] is not None and not np.isnan(knee_angle):
-                knee_ang_vel_dps = (knee_angle - s["prev_knee_angle"]) * fps
+            m = frame_metrics.get(leg, {})
+            ankle_speed_pps = m.get("ankle_speed_pps")
+            knee_ang_vel_dps = m.get("knee_ang_vel_dps")
 
             has_speed = (
                 isinstance(ankle_speed_pps, float)
@@ -569,8 +545,8 @@ def analyze_video_file(
 
             if composite > best_score:
                 best_score = composite
-                best_speed = ankle_speed_pps if has_speed else 0.0
-                best_kav   = knee_ang_vel_dps if has_kav else 0.0
+                best_speed = float(ankle_speed_pps) if has_speed else 0.0
+                best_kav   = float(knee_ang_vel_dps) if has_kav else 0.0
                 best_leg   = leg
 
         if best_leg is not None:
@@ -589,9 +565,8 @@ def analyze_video_file(
                 "detected_leg":      best_leg,
                 "knee_angle":        nan_to_none(s["knee_ema"].v),
                 "trunk":             nan_to_none(s["trunk_ema"].v),
-                "hip_rotation":      nan_to_none(s["hip_ema"].v),
-                "ankle_speed_pps":   nan_to_none(best_speed),
                 "knee_ang_vel_dps":  nan_to_none(best_kav),
+                "kick_score":        round(float(best_score), 4),
                 "frame_b64":         frame_b64,
             }
             kick_candidates.append(snapshot)
@@ -619,11 +594,11 @@ def analyze_video_file(
         return best
 
     # Pick the best kick: highest composite score (most power signal)
-    best = max(kick_candidates, key=lambda k: k.get("ankle_speed_pps") or 0.0)
+    best = max(kick_candidates, key=lambda k: k.get("kick_score") or 0.0)
     logger.info(
-        "Best kick selected: frame %d, leg=%s, speed=%.0f px/s (from %d candidates)",
+        "Best kick selected: frame %d, leg=%s, score=%.2f (from %d candidates)",
         best["frame_number"], best["detected_leg"],
-        best.get("ankle_speed_pps") or 0.0, len(kick_candidates),
+        best.get("kick_score") or 0.0, len(kick_candidates),
     )
 
     try:
