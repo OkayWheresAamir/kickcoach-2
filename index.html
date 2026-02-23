@@ -699,7 +699,7 @@
                 <div class="hs-meta">Session ${sessions.length-i}</div>
               </div>
               <div class="hs-profile">${s.profile||'Standard'} · ${s.position||'Unspecified'} · ${s.level||''}</div>
-              ${s.ankle_speed_pps?`<div class="hs-meta" style="margin-top:6px">Ankle: ${parseFloat(s.ankle_speed_pps).toFixed(0)} px/s · Knee: ${parseFloat(s.knee_angle||0).toFixed(1)}°</div>`:''}
+              <div class="hs-meta" style="margin-top:6px">Knee: ${parseFloat(s.knee_angle||0).toFixed(1)}°</div>
             </div>`).join('');
         } catch(e) {
           listEl.innerHTML = '<div class="history-empty">Could not load history.<br>Make sure the server is running.</div>';
