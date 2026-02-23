@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KickCoach Test</title>
+</head>
+<body>
+  <h2>KickCoach — /feedback Test</h2>
+  <!-- <h2>KickCoach — /analyze Test</h2> -->
+
+  <input type="file" id="file-input" accept="video/*" />
+  <br><br>
+  <button onclick="submit()">Submit</button>
+  <br><br>
+  <div id="status"></div>
+  <br>
+  <pre id="output" style="white-space: pre-wrap; word-break: break-word;"></pre>
+
+  <script>
+    async function submit() {
+      const file = document.getElementById('file-input').files[0];
+      if (!file) { alert('Pick a video file first'); return; }
+
+      document.getElementById('status').innerText = 'Uploading...';
+      document.getElementById('output').innerText = '';
+
+      const form = new FormData();
+      form.append('file', file);
+
+      try {
+        const res  = await fetch('http://127.0.0.1:8000/feedback', { method: 'POST', body: form });
+        const text = await res.text();
+
+        document.getElementById('status').innerText = 'Status: ' + res.status;
+        document.getElementById('output').innerText = text;
+
+      } catch (err) {
+        document.getElementById('status').innerText = 'Error: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
