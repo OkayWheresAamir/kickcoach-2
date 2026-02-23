@@ -310,10 +310,15 @@ def _fallback_peak_frame(video_path: str, legs_to_check: list[str]) -> dict | No
         hp_r_pt, hp_r_conf = to_xy_conf(RHIP)
 
         trunk_signed = np.nan
+        trunk_mag = np.nan
         if min(sh_l_conf, sh_r_conf, hp_l_conf, hp_r_conf) >= CONF_THRESH:
-            trunk_signed, _ = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hp_l_pt, hp_r_pt)
+            trunk_signed, trunk_mag = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hp_l_pt, hp_r_pt)
+        hip_rot = np.nan
+        if min(sh_l_conf, sh_r_conf, hp_l_conf, hp_r_conf) >= CONF_THRESH:
+            hip_rot = torso_pelvis_twist_2d(sh_l_pt, sh_r_pt, hp_l_pt, hp_r_pt)
 
         trunk_ema.update(trunk_signed)
+        hip_ema.update(hip_rot)
 
         for leg in legs_to_check:
             if leg == "right":
@@ -455,8 +460,12 @@ def analyze_video_file(
         hip_l_pt, hip_l_conf = to_xy_conf(LHIP)
         hip_r_pt, hip_r_conf = to_xy_conf(RHIP)
 
-        # Trunk tilt (shared across legs)
+        # Trunk & hip rotation (same for both legs)
         trunk_signed = np.nan
+        trunk_mag = np.nan
+        if min(sh_l_conf, sh_r_conf, hip_l_conf, hip_r_conf) >= CONF_THRESH:
+            trunk_signed, trunk_mag = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
+        hip_rotation = np.nan
         if min(sh_l_conf, sh_r_conf, hip_l_conf, hip_r_conf) >= CONF_THRESH:
             trunk_signed, _ = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
 
@@ -496,13 +505,7 @@ def analyze_video_file(
             # Smooth
             sm_knee  = s["knee_ema"].update(knee_angle)
             sm_trunk = s["trunk_ema"].update(trunk_signed)
-
-            frame_metrics[leg] = {
-                "ankle_speed_pps": ankle_speed_pps,
-                "knee_ang_vel_dps": knee_ang_vel_dps,
-                "smoothed_knee": sm_knee,
-                "smoothed_trunk": sm_trunk,
-            }
+            sm_hip   = s["hip_ema"].update(hip_rotation)
 
         # ── Kick detection (evaluate best leg or chosen leg) ──────────────
         if kick_cooldown > 0:
