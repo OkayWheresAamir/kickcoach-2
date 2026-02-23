@@ -91,7 +91,11 @@ LKNEE,RKNEE = 13, 14
 LANKLE,RANKLE = 15, 16
 
 # Colour map for skeleton drawing
-_COLOUR_MAP = {"m": (255, 0, 255), "c": (0, 255, 255), "y": (0, 255, 0)}
+_COLOUR_MAP = {
+    "m": (255, 0, 255),
+    "c": (255, 255, 0),
+    "y": (0, 255, 255),
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GEOMETRY
@@ -122,18 +126,23 @@ def angle_between_points(a, b, c):
 
 
 def trunk_tilt_signed_degrees(shoulder_l, shoulder_r, hip_l, hip_r):
+    """
+    Return trunk tilt as (signed_degrees, absolute_magnitude_degrees).
+    Positive signed tilt means leaning toward +x image direction.
+    """
     try:
         sh_mid_x  = (shoulder_l[0] + shoulder_r[0]) / 2.0
         sh_mid_y  = (shoulder_l[1] + shoulder_r[1]) / 2.0
         hip_mid_x = (hip_l[0]      + hip_r[0])      / 2.0
         hip_mid_y = (hip_l[1]      + hip_r[1])      / 2.0
     except Exception:
-        return np.nan
+        return (np.nan, np.nan)
     dx, dy = sh_mid_x - hip_mid_x, sh_mid_y - hip_mid_y
     v_norm = math.hypot(dx, dy)
     if v_norm < 1e-6:
-        return np.nan
-    return float(math.degrees(math.atan2(dx, -dy)))
+        return (np.nan, np.nan)
+    angle_deg = float(math.degrees(math.atan2(dx, -dy)))
+    return (angle_deg, abs(angle_deg))
 
 
 def torso_pelvis_twist_2d(sh_l, sh_r, hip_l, hip_r):
@@ -301,14 +310,15 @@ def _fallback_peak_frame(video_path: str, legs_to_check: list[str]) -> dict | No
         hp_l_pt, hp_l_conf = to_xy_conf(LHIP)
         hp_r_pt, hp_r_conf = to_xy_conf(RHIP)
 
-        trunk_val = np.nan
+        trunk_signed = np.nan
+        trunk_mag = np.nan
         if min(sh_l_conf, sh_r_conf, hp_l_conf, hp_r_conf) >= CONF_THRESH:
-            trunk_val = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hp_l_pt, hp_r_pt)
+            trunk_signed, trunk_mag = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hp_l_pt, hp_r_pt)
         hip_rot = np.nan
         if min(sh_l_conf, sh_r_conf, hp_l_conf, hp_r_conf) >= CONF_THRESH:
             hip_rot = torso_pelvis_twist_2d(sh_l_pt, sh_r_pt, hp_l_pt, hp_r_pt)
 
-        trunk_ema.update(trunk_val)
+        trunk_ema.update(trunk_signed)
         hip_ema.update(hip_rot)
 
         for leg in legs_to_check:
@@ -457,9 +467,10 @@ def analyze_video_file(
         hip_r_pt, hip_r_conf = to_xy_conf(RHIP)
 
         # Trunk & hip rotation (same for both legs)
-        trunk_val = np.nan
+        trunk_signed = np.nan
+        trunk_mag = np.nan
         if min(sh_l_conf, sh_r_conf, hip_l_conf, hip_r_conf) >= CONF_THRESH:
-            trunk_val    = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
+            trunk_signed, trunk_mag = trunk_tilt_signed_degrees(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
         hip_rotation = np.nan
         if min(sh_l_conf, sh_r_conf, hip_l_conf, hip_r_conf) >= CONF_THRESH:
             hip_rotation = torso_pelvis_twist_2d(sh_l_pt, sh_r_pt, hip_l_pt, hip_r_pt)
@@ -497,7 +508,7 @@ def analyze_video_file(
 
             # Smooth
             sm_knee  = s["knee_ema"].update(knee_angle)
-            sm_trunk = s["trunk_ema"].update(trunk_val)
+            sm_trunk = s["trunk_ema"].update(trunk_signed)
             sm_hip   = s["hip_ema"].update(hip_rotation)
 
         # ── Kick detection (evaluate best leg or chosen leg) ──────────────
