@@ -24,6 +24,8 @@ PRO_PROFILES = {
         "reference": {
             "knee_angle":         139.60,   # ° near full extension at contact
             "trunk":               10.37,   # ° lean toward kicking side
+            "hip_rotation":        -4.09,   # ° slight counter-rotation
+            "ankle_speed_pps":   2227.17,   # px/s very high foot speed
             "knee_ang_vel_dps":  1689.65,   # °/s explosive knee snap
         },
     },
@@ -39,6 +41,8 @@ PRO_PROFILES = {
         "reference": {
             "knee_angle":         128.50,
             "trunk":               14.20,
+            "hip_rotation":         8.30,
+            "ankle_speed_pps":   1850.00,
             "knee_ang_vel_dps":  1320.00,
         },
     },
@@ -54,6 +58,8 @@ PRO_PROFILES = {
         "reference": {
             "knee_angle":         132.00,
             "trunk":                9.00,
+            "hip_rotation":        -3.00,
+            "ankle_speed_pps":   1750.00,
             "knee_ang_vel_dps":  1300.00,
         },
     },
@@ -69,6 +75,8 @@ PRO_PROFILES = {
         "reference": {
             "knee_angle":         130.00,
             "trunk":                8.50,
+            "hip_rotation":        -2.50,
+            "ankle_speed_pps":   1580.00,
             "knee_ang_vel_dps":  1150.00,
         },
     },
@@ -84,6 +92,8 @@ PRO_PROFILES = {
         "reference": {
             "knee_angle":         122.00,
             "trunk":                7.00,
+            "hip_rotation":        -1.50,
+            "ankle_speed_pps":   1200.00,
             "knee_ang_vel_dps":   900.00,
         },
     },
@@ -99,6 +109,8 @@ PRO_PROFILES = {
         "reference": {
             "knee_angle":         120.00,
             "trunk":                7.50,
+            "hip_rotation":        -2.00,
+            "ankle_speed_pps":   1100.00,
             "knee_ang_vel_dps":   850.00,
         },
     },
@@ -136,6 +148,27 @@ FEATURE_META = {
         "coaching_cue": "Stay over the ball — imagine a string pulling your chest forward.",
         "priority":     2,
     },
+    "hip_rotation": {
+        "label":        "Hip Rotation",
+        "unit":         "°",
+        "hint": (
+            "How much your shoulders rotate relative to your hips at contact. "
+            "A small negative value means hips lead shoulders — the kinetic chain "
+            "that transfers power from your core to the ball."
+        ),
+        "coaching_cue": "Open your hips early, then snap them through at contact.",
+        "priority":     2,
+    },
+    "ankle_speed_pps": {
+        "label":        "Ankle Speed",
+        "unit":         "px/s",
+        "hint": (
+            "Linear speed of the ankle at ball contact. This is the single biggest "
+            "predictor of ball velocity. Elite players exceed 2000 px/s."
+        ),
+        "coaching_cue": "Whip your foot through — think of cracking a whip, not pushing.",
+        "priority":     1,
+    },
     "knee_ang_vel_dps": {
         "label":        "Knee Angular Velocity",
         "unit":         "°/s",
@@ -169,7 +202,7 @@ DRILL_LIBRARY = {
         },
         {
             "name":        "Resistance Band Knee Drive",
-            "targets":     ["knee_angle"],
+            "targets":     ["knee_angle", "ankle_speed_pps"],
             "description": (
                 "Attach a resistance band just above the knee of your kicking leg. "
                 "Drive through the kick against the band resistance, focusing on full "
@@ -179,6 +212,34 @@ DRILL_LIBRARY = {
             "level":       ["advanced", "elite"],
             "position":    ["all"],
             "phase":       "swing",
+        },
+    ],
+    "ankle_speed_pps": [
+        {
+            "name":        "Towel Whip Drill",
+            "targets":     ["ankle_speed_pps", "knee_ang_vel_dps"],
+            "description": (
+                "Hold a rolled towel at hip height and flick it rapidly using only your "
+                "wrist. Then replicate that 'whipping' sensation with your kicking leg — "
+                "think speed not power. Do 5 towel flicks then 5 kicks alternating."
+            ),
+            "sets_reps":   "5 rounds × 5+5",
+            "level":       ["all"],
+            "position":    ["all"],
+            "phase":       "contact",
+        },
+        {
+            "name":        "Speed Juggling",
+            "targets":     ["ankle_speed_pps"],
+            "description": (
+                "Juggle the ball using rapid light touches — aim for speed of foot "
+                "movement not height. Use the instep. Count touches in 30 seconds "
+                "and try to beat your record each session."
+            ),
+            "sets_reps":   "4 × 30 seconds",
+            "level":       ["all"],
+            "position":    ["all"],
+            "phase":       "contact",
         },
     ],
     "trunk": [
@@ -197,7 +258,7 @@ DRILL_LIBRARY = {
         },
         {
             "name":        "Medicine Ball Core Rotation",
-            "targets":     ["trunk"],
+            "targets":     ["trunk", "hip_rotation"],
             "description": (
                 "Stand sideways to a wall with a 3-4kg medicine ball. Rotate your torso, "
                 "throw the ball against the wall, catch and repeat in one fluid motion. "
@@ -209,10 +270,38 @@ DRILL_LIBRARY = {
             "phase":       "preparation",
         },
     ],
+    "hip_rotation": [
+        {
+            "name":        "Hip Gate Openers",
+            "targets":     ["hip_rotation"],
+            "description": (
+                "Walk forward lifting each knee to hip height, then rotate the hip "
+                "outward like opening a gate before placing the foot down. "
+                "Exaggerate the rotation — this mobilises the hip capsule for kicking."
+            ),
+            "sets_reps":   "3 × 20m walks",
+            "level":       ["all"],
+            "position":    ["all"],
+            "phase":       "preparation",
+        },
+        {
+            "name":        "Lateral Band Kick",
+            "targets":     ["hip_rotation"],
+            "description": (
+                "Attach a resistance band to your plant leg ankle and a fixed point "
+                "to your side. Perform full kicks focusing on driving the hip through "
+                "before the leg. Feel the hip lead the knee lead the ankle — the kinetic chain."
+            ),
+            "sets_reps":   "3 sets × 10 reps",
+            "level":       ["advanced", "elite"],
+            "position":    ["all"],
+            "phase":       "swing",
+        },
+    ],
     "knee_ang_vel_dps": [
         {
             "name":        "Explosive Knee Snap Volleys",
-            "targets":     ["knee_ang_vel_dps"],
+            "targets":     ["knee_ang_vel_dps", "ankle_speed_pps"],
             "description": (
                 "Have a partner toss balls at thigh height. Focus on the explosive "
                 "snap of the knee through contact — exaggerate the speed, not the "

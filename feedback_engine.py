@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 SEVERITY_THRESHOLDS: dict[str, dict[str, float]] = {
     "knee_angle":        {"moderate": 0.05,  "significant": 0.12},
     "trunk":             {"moderate": 0.15,  "significant": 0.35},
+    "hip_rotation":      {"moderate": 0.20,  "significant": 0.50},
+    "ankle_speed_pps":   {"moderate": 0.10,  "significant": 0.25},
     "knee_ang_vel_dps":  {"moderate": 0.10,  "significant": 0.25},
 }
 
