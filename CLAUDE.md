@@ -19,14 +19,18 @@ feedback and drills → the session is saved to CSV history for trend tracking.
 
 ## Current focus
 
-[What is the active area of work right now? Which surface or feature set?]
+**Phase 1 — Shippable** (see the phase plan in `docs/PROJECT_STATE.md`):
+reproducible setup, smoke tests + CI, hardening, single deployable unit,
+deploy. Sequence: Shippable → Analysis quality → Data & accounts.
 
 **In scope now:**
-- [Feature / screen / module A]
-- [Feature / screen / module B]
+- Packaging/tooling: deps manifest, README, `.gitignore`, Dockerfile, CI
+- `app.py` hardening (CORS, config, error responses)
+- Serving `index.html` from FastAPI
 
 **Parked — do not edit this sprint:**
-- [Module or file that is done/frozen/belongs to a later phase]
+- `pose_engine.py` detection logic and thresholds (Phase 2)
+- Any database/auth work — CSVs stay for now (Phase 3)
 
 ## How to treat the plan in PROJECT_STATE.md
 
