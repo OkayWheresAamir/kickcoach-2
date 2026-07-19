@@ -7,9 +7,15 @@ anyone working in this repo. Personal working-style preferences belong in
 
 ## What this project is
 
-[PROJECT NAME] — one-line description of what it does and who it's for.
+**KickCoach** — an AI football (soccer) coaching app: upload a video of your
+kick, get biomechanical analysis and personalized coaching feedback.
 
-[2–3 sentences on the core problem it solves and the user types involved.]
+Pipeline: a TFLite pose-estimation model (`3.tflite`, MoveNet-style, 17
+keypoints) extracts biomechanical features at the moment of the kick (knee
+angle, trunk lean, hip rotation, ankle speed, knee angular velocity) → the
+snapshot is compared against a pro reference profile matched to the player's
+age/level/position/kick type → Google Gemini generates context-aware coaching
+feedback and drills → the session is saved to CSV history for trend tracking.
 
 ## Current focus
 
@@ -34,36 +40,69 @@ anyone working in this repo. Personal working-style preferences belong in
 ## Commands
 
 ```bash
-# [Fill in your dev/build/test commands here]
-npm run dev      # Start dev server
-npm run build    # Production build
-npm run lint     # Linter
-npm test         # Run tests
+# Backend (FastAPI) — requires GEMINI_API_KEY in .env for /feedback
+uvicorn app:app --reload --port 8000
+
+# Frontend — index.html is a static page; open it directly or serve it
+# (VSCode Live Server is configured on port 5501). It calls the API at
+# http://127.0.0.1:8000 by default (editable in the page's API-base field).
 ```
+
+There is currently **no requirements.txt, no test suite, and no linter**.
+Dependencies (installed manually so far): fastapi, uvicorn, httpx,
+python-dotenv, opencv-python, numpy, tensorflow.
 
 ## Stack
 
-[List your stack here — e.g. Next.js (TypeScript, App Router) · Prisma → Supabase · Tailwind + shadcn/ui · Vercel · Vitest]
+- **Backend:** Python 3.11/3.13 · FastAPI + Starlette middleware · uvicorn
+- **ML:** TensorFlow Lite interpreter (`3.tflite` pose model) · OpenCV · NumPy
+- **LLM:** Google Gemini (`gemini-2.5-flash`) via raw REST calls in `llm_client.py`
+- **Frontend:** single static `index.html`, vanilla JS, no build step
+  (`index2.html` is a minimal API test harness)
+- **Storage:** flat CSV files (`kick_history.csv` session history,
+  `final_kick_features.csv` extracted kick features) — no database
+
+## Layout (flat, single-directory)
+
+- `app.py` — FastAPI app: middleware, routes (`/analyze`, `/feedback`,
+  `/profiles`, `/history`, health checks), CSV history helpers
+- `pose_engine.py` — model loading, per-frame inference, feature extraction,
+  kick detection, annotated-frame export; tunable via env vars
+- `feedback_engine.py` — deviation computation vs. pro reference, severity
+  thresholds, prompt building, orchestrates the LLM call
+- `reference_data.py` — `PRO_PROFILES` archetypes, `select_profile()`,
+  feature metadata, drill library
+- `llm_client.py` — thin async Gemini wrapper; all LLM config lives here
+- `index.html` — the real frontend UI
+
+## Configuration
+
+- `.env` (gitignored): `GEMINI_API_KEY` — required for `/feedback`.
+- Pose tuning env vars (all optional, defaults in `pose_engine.py`):
+  `MODEL_PATH`, `CONF_THRESH`, `KICKING_LEG`, `KICK_THRESHOLD_PPS`,
+  `KNEE_ANG_VEL_THRESHOLD`, `KICK_COOLDOWN_SECS`, `SMOOTH_ALPHA`,
+  `FPS_ESTIMATE`, `MAX_KICKS_TO_TRACK`.
 
 ## Key docs (read when relevant — don't load all by default)
 
 - `docs/PROJECT_STATE.md` — live status, current phase, open questions. Check first.
 - `docs/CONTEXT.md` — decisions made and why, conventions, deferred items.
-- [Add other key docs as they exist, e.g. wireframes, schema, API spec]
 
 ## Conventions
 
-- [Fill in your file/folder structure — e.g. App Router: pages at `src/app/[route]/page.tsx`]
-- TypeScript strict mode — no `any`; use `unknown` then narrow.
+- Flat module layout — one file per concern (see Layout above); no packages.
+- Section banners (`# ───────`) divide each file into CONFIG / HELPERS /
+  ROUTES etc. — keep new code under the right banner.
 - Comments explain *why*, not *what*.
-- [Add any naming conventions, branch naming, PR rules, etc.]
-
-## Path alias
-
-[e.g. `@/*` maps to the project root — or remove if not applicable]
+- Config comes from env vars with defaults, read at module top, never
+  hardcoded mid-function.
+- The five feature names (`knee_angle`, `trunk`, `hip_rotation`,
+  `ankle_speed_pps`, `knee_ang_vel_dps`) are a shared contract across
+  `pose_engine`, `reference_data`, `feedback_engine`, the CSVs, and the
+  frontend — renaming one is a multi-file operation.
 
 ## When stuck
 
 - Status / "what's done, what's next" → check `docs/PROJECT_STATE.md` first.
-- UI/UX question → [link to wireframes or design doc if you have one].
-- Stack question → [your stack here]. Don't introduce new frameworks without flagging it.
+- Stack question → Python/FastAPI + vanilla-JS static frontend. Don't
+  introduce new frameworks (React, databases, build tools) without flagging it.
